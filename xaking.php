@@ -17,8 +17,14 @@ if (extension_loaded($module)) {
 } else {
 	$str = "Module $module is not compiled into PHP";
 }
-echo "$str\n";
+echo "called in script: $str\n";
 
-xaking_gotask(array($function), 100, 2.2);
+//$ret = xaking_gotask($function, 100, 2.2);
+$func2 = function($arg1, ...) {
+    return sprintf("make a str:".$arg1, ...);
+}
+$ret = xaking_gotask('printf', 'IN_PRINTF:%s:%d\n', __FILE__, __LINE__);
+echo "the ret var_dump=";
+var_dump($ret);
 
 ?>

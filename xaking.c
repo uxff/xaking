@@ -71,38 +71,42 @@ PHP_FUNCTION(confirm_xaking_compiled)
    function definition, where the functions purpose is also documented. Please
    follow this convention for the convenience of others editing your code.
 */
-/*function xaking_init_queue();*/
-/*function xaking_init_threads(int $num);*/
+
+/* proto function xaking_init();*/
+/* proto function xaking_init_queue();*/
+/* proto function xaking_init_threads(int $num);*/
 PHP_FUNCTION(xaking_init_threads)
 {
 	char *arg = NULL;
-	size_t arg_len, len;
+	size_t arg_len;
 	zend_string *strg;
+    int num_of_threads = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &arg, &arg_len) == FAILURE) {
 		return;
 	}
 
-	strg = strpprintf(0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "xaking", arg);
+
+	//strg = strpprintf(0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "xaking", arg);
 
 	RETURN_STR(strg);
 }
-/*function xaking_gotask(callable $func, mixed $arg1 ...*/
+/* proto function xaking_gotask(callable $func[, mixed $arg1[, ...]]);*/
 PHP_FUNCTION(xaking_gotask)
 {
 	int i, status, argc = ZEND_NUM_ARGS();
     zval *args = NULL;
     zval retval;
 
+    // use FAST_ZPP get any count of args, args use original args pointer, no need to free here
 #ifndef FAST_ZPP
-    php_printf("use no FAST_ZPP\n");
-        if (zend_parse_parameters(ZEND_NUM_ARGS(), "+", &args, &argc) == FAILURE) {
-            RETURN_FALSE;
-        }
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "+", &args, &argc) == FAILURE) {
+        RETURN_FALSE;
+    }
 #else
-        ZEND_PARSE_PARAMETERS_START(1, -1)
-            Z_PARAM_VARIADIC('+', args, argc)
-        ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_VARIADIC('+', args, argc)
+    ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 #endif
 
     if (argc < 1) {
@@ -113,7 +117,7 @@ PHP_FUNCTION(xaking_gotask)
     zval *thefunc = &(args[0]);
     php_printf("you will call: %s argc=%d is_callable=%d\n", Z_STRVAL(*thefunc), argc, zend_is_callable(thefunc, IS_CALLABLE_CHECK_NO_ACCESS, NULL));
     if (!zend_is_callable(thefunc, IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
-        php_printf("the function is not callable:%s", Z_STRVAL(*thefunc));
+        php_printf("the function is not callable:%s\n", Z_STRVAL(*thefunc));
         RETURN_FALSE;
     }
 
@@ -126,18 +130,17 @@ PHP_FUNCTION(xaking_gotask)
     status = call_user_function_ex(EG(function_table), NULL, thefunc, &retval, argc-1, (argc>1?args+1:NULL), 0, NULL);
     if (status == SUCCESS && !Z_ISUNDEF(retval)) {
         php_printf("the function success:%d\n", status);
-        //zval_ptr_dtor(value);
-        //ZVAL_COPY_VALUE(value, &retval);
+        // if you wont use retval to return, instead of return return_value, you should do zval_ptr_dtor(&retval)
+        //zval_ptr_dtor(return_value); 
+        //ZVAL_COPY_VALUE(return_value, &retval);
     } else {
         php_printf("the function failed:%d\n", status);
-        //zval_ptr_dtor(value);
-        //ZVAL_NULL(value);
+        //zval_ptr_dtor(return_value);
+        //ZVAL_NULL(return_value);
     }
     php_printf("the call over: %s argc=%d status=%d\n", Z_STRVAL(*thefunc), argc);
-    // do not free from Z_PARAM_VARIADIC or 
-    //efree(args);
-	//RETURN_STR(strg);
-    RETURN_TRUE;
+    //efree(args); // do not free from Z_PARAM_VARIADIC or 
+    RETURN_ZVAL(&retval, 1, 1);//RETURN_TRUE;
 }
 
 /* {{{ php_xaking_init_globals
